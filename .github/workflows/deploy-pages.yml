@@ -23,10 +23,14 @@ jobs:
           node-version: '22'
       - name: Check JavaScript and routing algorithm
         run: npm run check
+      - name: Prepare public frontend
+        run: |
+          mkdir public-site
+          cp dist/*.html dist/*.js dist/*.css dist/*.svg public-site/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: public-site
       - name: Publish website
         id: deployment
         uses: actions/deploy-pages@v4

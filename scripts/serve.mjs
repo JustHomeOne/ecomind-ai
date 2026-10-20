@@ -6,6 +6,7 @@ const types={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=
 http.createServer(async(req,res)=>{
   try {
     const pathname=decodeURIComponent(new URL(req.url,'http://localhost').pathname);
+    if(pathname==='/api/health'){res.writeHead(200,{'Content-Type':'application/json'});return res.end(JSON.stringify({status:'ok',gemini_configured:false}));}
     const file=resolve(root,'.'+(pathname==='/'?'/index.html':pathname));
     if(file!==root && !file.startsWith(root+sep)) {res.writeHead(403);return res.end();}
     const data=await readFile(file);res.writeHead(200,{'Content-Type':types[extname(file)]||'application/octet-stream'});res.end(data);
