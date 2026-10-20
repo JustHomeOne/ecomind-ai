@@ -27,12 +27,12 @@ function loadMapLibrary(){
 
 export function destroyMap(){activeCleanup?.();activeCleanup=null;}
 
-export function mountMap(host,{containers=[],route,onSelect,layer='waste'}={}){
+export function mountMap(host,{containers=[],route,onSelect,layer='waste',routeStatus='idle',routeError='',onRouteRequested}={}){
   destroyMap();if(!host)return;
   const view=host.querySelector('.map-canvas');
   const cameraKey=layer==='route'?'route':'city';
   const savedCamera=cameras.get(cameraKey);
-  let map,disposed=false,markers=[],currentLayer=layer,noticeTimer;
+  let map,disposed=false,markers=[],currentLayer=layer,noticeTimer,depotMarker;
   host.dataset.mapStatus='loading';
   view.innerHTML=`<div class="map-maplibre" aria-label="Карта Астаны"></div><div class="map-loading">${icon('refresh','spin')}<strong>Загружаем карту Астаны</strong><span>Настоящие улицы и здания · OpenStreetMap</span></div>`;
   const canvas=view.firstElementChild;
@@ -58,16 +58,41 @@ export function mountMap(host,{containers=[],route,onSelect,layer='waste'}={}){
   function syncLayer(){
     host.querySelectorAll('.map-chip').forEach(el=>el.classList.toggle('active',el.dataset.mapAction===currentLayer));
     const air=currentLayer==='air';
-    markers.forEach(({element,container})=>{
+    markers.forEach(({element,container,marker})=>{
       element.style.display=air?'none':'';
       element.classList.toggle('compact',(map?.getZoom()??12)<14.2&&currentLayer!=='route');
-      const n=route?.points?.findIndex(p=>p.id===container.id);
+      const n=routeStatus==='ready'?route?.points?.findIndex(p=>p.id===container.id):-1;
       element.textContent=currentLayer==='route'&&n>0?String(n):container.fill===null?'?':container.fill+'%';
+      const snap=currentLayer==='route'&&routeStatus==='ready'?route?.snaps?.find(p=>p.id===container.id):null;
+      marker.setLngLat(snap?snap.location:[container.lng,container.lat]);
+      element.classList.toggle('route-stop-marker',Boolean(snap));
     });
     host.querySelector('.map-legend').hidden=air;
     host.querySelector('.map-layer-note')?.remove();
     if(air){const note=document.createElement('div');note.className='map-layer-note';note.textContent='Локальных датчиков пока нет. Данные воздуха — модель Open-Meteo / CAMS для выбранных координат, без тепловой карты дворов.';view.append(note);}
-    if(map?.getLayer('ecomind-route-line'))map.setLayoutProperty('ecomind-route-line','visibility',currentLayer==='route'?'visible':'none');
+    for(const id of ['ecomind-route-line','ecomind-route-casing'])if(map?.getLayer(id))map.setLayoutProperty(id,'visibility',currentLayer==='route'&&routeStatus==='ready'&&route?.geometry?'visible':'none');
+    const snap=routeStatus==='ready'&&route?.geometry?route.snaps?.[0]:null;
+    if(map&&currentLayer==='route'&&snap){
+      if(!depotMarker){const element=document.createElement('button');element.className='depot-marker';element.innerHTML=icon('truck');element.title='Условная база · остановка у дороги';element.setAttribute('aria-label',element.title);depotMarker=new window.maplibregl.Marker({element}).setLngLat(snap.location).addTo(map);}
+      else depotMarker.setLngLat(snap.location);
+    }else{depotMarker?.remove();depotMarker=null;}
+    routeFeedback();
+  }
+  function routeFeedback(){
+    host.dataset.routingStatus=routeStatus;host.querySelector('.route-map-status')?.remove();
+    if(currentLayer!=='route')return;
+    const box=document.createElement('div');box.className='route-map-status '+(routeStatus==='error'?'failed':'');
+    if(routeStatus==='ready')box.innerHTML=route?.geometry?`${icon('check')}<span>По дорогам · <a href="https://routing.openstreetmap.de/about.html" target="_blank" rel="noopener">OSRM / FOSSGIS</a></span>`:`${icon('info')}<span>Нет остановок по выбранному порогу.</span>`;
+    else if(routeStatus==='error'){
+      box.innerHTML=icon('warning');const text=document.createElement('span');text.textContent=routeError||'Маршрут по дорогам не получен.';box.append(text);
+      const retry=document.createElement('button');retry.className='text-button';retry.dataset.mapAction='retry-route';retry.textContent='Повторить';box.append(retry);
+    }else box.innerHTML=`${icon('refresh','spin')}<span>Строим маршрут по дорогам…</span>`;
+    view.append(box);
+  }
+  function updateRoute(next,status='idle',error=''){
+    if(disposed)return;route=next;routeStatus=status;routeError=error;
+    if(map?.getSource('ecomind-route'))map.getSource('ecomind-route').setData(status==='ready'&&next?.geometry?{type:'Feature',properties:{},geometry:next.geometry}:{type:'FeatureCollection',features:[]});
+    syncLayer();
   }
   function focusContainers(){
     if(!map||!containers.length)return;
@@ -83,9 +108,10 @@ export function mountMap(host,{containers=[],route,onSelect,layer='waste'}={}){
   const handle=e=>{
     const button=e.target.closest('[data-map-action]');if(!button)return;
     const action=button.dataset.mapAction;
-    if(action==='retry'){mountMap(host,{containers,route,onSelect,layer:currentLayer});return;}
+    if(action==='retry'){mountMap(host,{containers,route,onSelect,layer:currentLayer,routeStatus,routeError,onRouteRequested});return;}
     if(action==='fullscreen'){host.classList.toggle('fullscreen-map');button.setAttribute('aria-label',host.classList.contains('fullscreen-map')?'Закрыть полный экран':'Развернуть карту');map?.resize();return;}
-    if(['waste','air','route'].includes(action)){currentLayer=action;syncLayer();return;}
+    if(action==='retry-route'){onRouteRequested?.({force:true});return;}
+    if(['waste','air','route'].includes(action)){currentLayer=action;syncLayer();if(action==='route')onRouteRequested?.();return;}
     if(!map)return;
     if(action==='zoom-in')map.zoomIn();
     if(action==='zoom-out')map.zoomOut();
@@ -101,7 +127,7 @@ export function mountMap(host,{containers=[],route,onSelect,layer='waste'}={}){
   activeCleanup=()=>{
     disposed=true;clearTimeout(noticeTimer);
     host.removeEventListener('click',handle);document.removeEventListener('keydown',keyHandler);
-    markers.forEach(({marker})=>marker.remove());map?.remove();
+    markers.forEach(({marker})=>marker.remove());depotMarker?.remove();map?.remove();
   };
 
   loadMapLibrary().then(maplibre=>{
@@ -120,7 +146,7 @@ export function mountMap(host,{containers=[],route,onSelect,layer='waste'}={}){
       }
       const source=Object.entries(style.sources).find(([,value])=>value.type==='vector')?.[0];
       const labels=style.layers.find(item=>item.type==='symbol'&&item.layout?.['text-field'])?.id;
-      if(source)map.addLayer({id:'ecomind-buildings',type:'fill-extrusion',source,'source-layer':'building',minzoom:13,paint:{'fill-extrusion-color':'#d3deca','fill-extrusion-height':['to-number',['get','render_height'],['get','height'],0],'fill-extrusion-base':['to-number',['get','render_min_height'],0],'fill-extrusion-opacity':.85}},labels);
+      if(source)map.addLayer({id:'ecomind-buildings',type:'fill-extrusion',source,'source-layer':'building',minzoom:13,paint:{'fill-extrusion-color':'#cad8ec','fill-extrusion-height':['to-number',['get','render_height'],['get','height'],0],'fill-extrusion-base':['to-number',['get','render_min_height'],0],'fill-extrusion-opacity':.85}},labels);
       containers.forEach(container=>{
         const element=document.createElement('button');element.className='real-marker';
         element.style.setProperty('--marker-color',fillStatus(container.fill).color);
@@ -130,11 +156,10 @@ export function mountMap(host,{containers=[],route,onSelect,layer='waste'}={}){
         const marker=new maplibre.Marker({element}).setLngLat([container.lng,container.lat]).addTo(map);
         markers.push({marker,element,container});
       });
-      const points=route?.points||[];
-      if(points.length>2){
-        map.addSource('ecomind-route',{type:'geojson',data:{type:'Feature',geometry:{type:'LineString',coordinates:points.map(point=>[point.lng,point.lat])}}});
-        map.addLayer({id:'ecomind-route-line',type:'line',source:'ecomind-route',layout:{'line-cap':'round','line-join':'round',visibility:'none'},paint:{'line-color':'#238754','line-width':4,'line-dasharray':[2,1]}});
-      }
+      map.addSource('ecomind-route',{type:'geojson',data:routeStatus==='ready'&&route?.geometry?{type:'Feature',properties:{},geometry:route.geometry}:{type:'FeatureCollection',features:[]}});
+      const before=map.getLayer('ecomind-buildings')?'ecomind-buildings':labels;
+      map.addLayer({id:'ecomind-route-casing',type:'line',source:'ecomind-route',layout:{'line-cap':'round','line-join':'round',visibility:'none'},paint:{'line-color':'#ffffff','line-width':8,'line-opacity':.9}},before);
+      map.addLayer({id:'ecomind-route-line',type:'line',source:'ecomind-route',layout:{'line-cap':'round','line-join':'round',visibility:'none'},paint:{'line-color':'#246bff','line-width':4.5}},before);
       syncLayer();sync3D();
       if(cameraKey==='route'&&!savedCamera)focusContainers();
     });
@@ -144,4 +169,5 @@ export function mountMap(host,{containers=[],route,onSelect,layer='waste'}={}){
       else notify('Часть карты не загрузилась. Проверьте интернет и повторите загрузку страницы.');
     });
   }).catch(error=>failed(error.message||'Картографический сервис временно недоступен.'));
+  return {updateRoute};
 }
