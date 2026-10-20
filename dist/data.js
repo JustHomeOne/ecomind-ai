@@ -1,6 +1,6 @@
 export const CENTER = [71.4249, 51.1327];
 export const DEPOT = { id: 'depot', name: 'База вывоза', lng: 71.4115, lat: 51.1280 };
-export const DEMO_CONTAINERS = [
+const DEMO_SEED = [
   { id:'EM-001', name:'Площадка у дома 12', address:'ул. Достык, 12', lng:71.4184, lat:51.1340, fill:94, rate:9, confidence:'high', type:'Смешанные', capacity:1100, ago:12 },
   { id:'EM-002', name:'Северный двор', address:'ул. Достык, 16', lng:71.4201, lat:51.1366, fill:86, rate:7, confidence:'medium', type:'Смешанные', capacity:1100, ago:28 },
   { id:'EM-003', name:'У детской площадки', address:'ул. Сауран, 8', lng:71.4255, lat:51.1363, fill:42, rate:5, confidence:'high', type:'Переработка', capacity:770, ago:35 },
@@ -14,7 +14,15 @@ export const DEMO_CONTAINERS = [
   { id:'EM-011', name:'Центральная аллея', address:'ул. Сауран, 10', lng:71.4240, lat:51.1329, fill:48, rate:4, confidence:'high', type:'Переработка', capacity:770, ago:47 },
   { id:'EM-012', name:'Торговая галерея', address:'ул. Достык, 28', lng:71.4313, lat:51.1382, fill:64, rate:6, confidence:'medium', type:'Смешанные', capacity:1100, ago:21 },
 ];
+export const DEMO_CONTAINERS=DEMO_SEED.map(record=>({...record,source:'demo',locationSource:'demo'}));
 export const CONFIDENCE = { high:'Высокая', medium:'Средняя', low:'Низкая' };
+// A measured fill value does not verify the position of a demo container.
+// Real supplied records use locationSource:'real' and a non-demo observation source.
+export function getContainerDataState(containers) {
+  const demoLocations=containers.filter(c=>c.locationSource!=='real').length;
+  const demoReadings=containers.filter(c=>!['manual','gemini','sensor','verified'].includes(c.source)).length;
+  return {total:containers.length,demoLocations,demoReadings,hasDemo:demoLocations>0||demoReadings>0};
+}
 export function fillStatus(fill) {
   if (fill === null || fill === undefined) return { key:'unknown', label:'Нет оценки', color:'#8b95a0' };
   if (fill >= 90) return { key:'critical', label:'Срочный вывоз', color:'#df6957' };
