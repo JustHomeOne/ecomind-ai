@@ -90,6 +90,7 @@ async function fetchAir(){
 }
 async function checkApi(showToast=false){if(location.hostname.endsWith('github.io')&&!state.settings.apiBase){state.analysisAvailable=false;if(showToast)toast('?????????? ???? ?? ?????????. ?????? ?????????? ????????.','info');return;}try{const r=await fetch((state.settings.apiBase||'')+'/api/health',{signal:AbortSignal.timeout(8000)});if(r.headers.get('content-type')?.includes('application/json')&&r.ok){const d=await r.json();state.analysisAvailable=Boolean(d.gemini_configured);}else state.analysisAvailable=false;}catch{state.analysisAvailable=false;}if(showToast){if(state.page==='settings')render({keepScroll:true});toast(state.analysisAvailable?'Gemini подключён и готов к запросам.':'Сервис Gemini ещё не настроен. Ручные наблюдения доступны.',state.analysisAvailable?'check':'info');}}
 document.addEventListener('click',async e=>{
+ if(e.target.closest('.skip-link')){e.preventDefault();$('#main').focus();$('#main').scrollIntoView();return;}
  const filter=e.target.closest('[data-filter]');if(filter){state.filter=filter.dataset.filter;render({keepScroll:true});return;}
  const tab=e.target.closest('[data-observation-tab]');if(tab){const id=$('#observation-container')?.value;showObservation(id,tab.dataset.observationTab);return;}
  const container=e.target.closest('[data-container]');if(container&&!e.target.closest('.map-viewport')){showContainer(container.dataset.container);return;}

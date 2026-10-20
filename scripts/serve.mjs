@@ -6,6 +6,12 @@ const types={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=
 http.createServer(async(req,res)=>{
   try {
     const pathname=decodeURIComponent(new URL(req.url,'http://localhost').pathname);
+    if(pathname==='/__preview'){
+      const requested=Number(new URL(req.url,'http://localhost').searchParams.get('width'));
+      const width=[390,768,1440].includes(requested)?requested:1440;
+      res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});
+      return res.end(`<!doctype html><html><head><title>EcoMind · ${width}px preview</title><style>*{box-sizing:border-box}body{margin:0;width:${width}px;min-width:${width}px}iframe{display:block;width:${width}px;height:1100px;border:0}</style></head><body><iframe title="EcoMind preview" src="/"></iframe></body></html>`);
+    }
     if(pathname==='/api/health'){res.writeHead(200,{'Content-Type':'application/json'});return res.end(JSON.stringify({status:'ok',gemini_configured:false}));}
     const file=resolve(root,'.'+(pathname==='/'?'/index.html':pathname));
     if(file!==root && !file.startsWith(root+sep)) {res.writeHead(403);return res.end();}
