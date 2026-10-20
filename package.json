@@ -1,0 +1,10 @@
+{
+  "name": "ecomind-ai",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/serve.mjs",
+    "check": "node --check dist/app.js && node --check dist/data.js && node --check dist/map.js && node --test tests/*.test.mjs"
+  }
+}
