@@ -1,8 +1,11 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
+import {build} from 'esbuild';
+import {fileURLToPath} from 'node:url';
 const source=(await readFile(new URL('../worker/index.js',import.meta.url),'utf8')).replace('__ECOMIND_ASSETS__',JSON.stringify({'index.html':{type:'text/html',content:'<html lang="ru">EcoMind</html>'}}));
-const {default:worker,normalizeAnalysis}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
+const bundle=await build({stdin:{contents:source,resolveDir:fileURLToPath(new URL('../worker/',import.meta.url))},bundle:true,write:false,format:'esm',platform:'browser'});
+const {default:worker,normalizeAnalysis}=await import('data:text/javascript;base64,'+Buffer.from(bundle.outputFiles[0].text).toString('base64'));
 test('health reveals configuration state without disclosing a key',async()=>{const r=await worker.fetch(new Request('https://example.com/api/health'),{GEMINI_API_KEY:'test-secret'});const d=await r.json();assert.equal(d.gemini_configured,true);assert.ok(!JSON.stringify(d).includes('test-secret'));});
 test('missing key is an actionable failure, never a synthetic analysis',async()=>{const r=await worker.fetch(new Request('https://example.com/analyze',{method:'POST'}),{});assert.equal(r.status,503);assert.ok((await r.json()).error.includes('GEMINI_API_KEY'));});
 test('cross-origin photo requests are rejected',async()=>{const r=await worker.fetch(new Request('https://example.com/analyze',{method:'POST',headers:{origin:'https://other.example'}}),{GEMINI_API_KEY:'test-secret'});assert.equal(r.status,403);});

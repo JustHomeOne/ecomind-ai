@@ -22,11 +22,11 @@ jobs:
         with:
           node-version: '22'
       - name: Check JavaScript and routing algorithm
-        run: npm run check
+        run: npm ci && npm run check
       - name: Prepare public frontend
         run: |
           mkdir public-site
-          cp dist/*.html dist/*.js dist/*.css dist/*.svg public-site/
+          cp dist/*.html dist/*.js dist/*.css dist/*.svg dist/*.txt public-site/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

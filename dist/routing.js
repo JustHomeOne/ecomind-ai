@@ -8,7 +8,7 @@ export function networkKey(containers,depot=DEPOT){
   return [depot,...containers].map(p=>`${p.id}:${p.lng},${p.lat}`).join('|');
 }
 function coordinates(points){
-  if(points.length>40)throw new RoutingError('В одном рейсе поддерживается до 39 площадок.');
+  if(points.length>41)throw new RoutingError('В одном рейсе поддерживается до 39 площадок.');
   return points.map(p=>{
     if(!Number.isFinite(p.lng)||!Number.isFinite(p.lat)||Math.abs(p.lat)>90||Math.abs(p.lng)>180)throw new RoutingError('Проверьте координаты контейнеров.');
     return `${p.lng.toFixed(6)},${p.lat.toFixed(6)}`;
@@ -79,6 +79,7 @@ export function createRoadRouter({fetcher=globalThis.fetch,baseUrl=ROUTING_URL,i
     return promise;
   }
   async function getNetwork(containers,depot=DEPOT){
+    if(containers.length>39)throw new RoutingError('В одном рейсе поддерживается до 39 площадок.');
     const points=[depot,...containers],coords=coordinates(points);
     const radiuses=points.map(()=>400).join(';');
     const payload=await request(`/table/v1/driving/${coords}?annotations=distance,duration&generate_hints=false&radiuses=${radiuses}`);

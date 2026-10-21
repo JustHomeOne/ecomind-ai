@@ -1,0 +1,4 @@
+import {sqliteTable,text,integer,primaryKey} from 'drizzle-orm/sqlite-core';
+export const workspaces=sqliteTable('workspaces',{id:text('id').primaryKey(),ownerId:text('owner_id').notNull(),name:text('name').notNull(),payload:text('payload').notNull(),revision:integer('revision').notNull().default(0),createdAt:text('created_at').notNull(),updatedAt:text('updated_at').notNull()});
+export const members=sqliteTable('members',{workspaceId:text('workspace_id').notNull(),userId:text('user_id').notNull(),email:text('email').notNull(),role:text('role').notNull()},table=>[primaryKey({columns:[table.workspaceId,table.userId]})]);
+export const invites=sqliteTable('invites',{id:text('id').primaryKey(),workspaceId:text('workspace_id').notNull(),email:text('email').notNull(),role:text('role').notNull(),expiresAt:text('expires_at').notNull()});

@@ -59,7 +59,7 @@ export function optimizeRoute(stops, depot=DEPOT) {
   return { points, baseline, distance, originalDistance, saving:originalDistance ? Math.max(0,(1-distance/originalDistance)*100) : 0 };
 }
 export function selectStops(containers, policy='current', threshold=75, horizon=12) {
-  return containers.filter(c=>policy==='calendar' || (Number.isFinite(c.fill) && (policy==='forecast' ? c.fill+c.rate*horizon/24 : c.fill)>=threshold));
+  return containers.filter(c=>c.mandatory||policy==='calendar' || (Number.isFinite(c.fill) && (policy==='forecast' ? c.fill+c.rate*horizon/24 : c.fill)>=threshold));
 }
 export function aqiLabel(value) {
   if(!Number.isFinite(value)) return 'Нет данных';

@@ -1,3 +1,4 @@
+import {teamAPI} from './team.js';
 // The build embeds the static files into this Worker. No credentials are bundled.
 const assets = __ECOMIND_ASSETS__;
 const MAX_IMAGE=10*1024*1024;
@@ -37,7 +38,8 @@ async function analyze(request,env){
 export default {
  async fetch(request,env={}){
   const url=new URL(request.url),path=url.pathname;
-  if(path==='/api/health'&&request.method==='GET')return json({status:'ok',gemini_configured:Boolean(env.GEMINI_API_KEY?.trim()),storage:'browser-local',version:'1.1.0'});
+  if(path.startsWith('/api/team/'))return teamAPI(request,env);
+  if(path==='/api/health'&&request.method==='GET')return json({status:'ok',gemini_configured:Boolean(env.GEMINI_API_KEY?.trim()),team_configured:Boolean(env.DB),storage:env.DB?'cloud-d1':'browser-local',version:'2.0.0'});
   if(path==='/analyze'){
    if(request.method!=='POST')return json({error:'Используйте POST.'},405);
    const origin=request.headers.get('origin');if(origin&&origin!==url.origin)return json({error:'Запрос разрешён только со страницы этого приложения.'},403);
