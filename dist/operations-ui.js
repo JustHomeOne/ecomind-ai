@@ -5,7 +5,7 @@ import {createRoadRouter} from './routing.js';
 import {readImport} from './import-data.js';
 import {savePhoto,getPhoto} from './photos.js';
 import {cloudAvailable,cloudRequest,CLOUD_URL} from './team-client.js';
-import {loadMapLibrary} from './map.js';
+import {loadMapLibrary} from './map.js?v=districts-20261024-2';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const date=v=>v?new Date(v).toLocaleString('ru-RU',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'Нет наблюдения';
 const roleName={owner:'Владелец',dispatcher:'Диспетчер',driver:'Водитель',viewer:'Наблюдатель'};

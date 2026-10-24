@@ -1,4 +1,4 @@
-import {ASTANA_DISTRICTS,DISTRICT_SOURCE,districtSummary,districtFeatures,districtAt,districtBounds,districtLabelPoint} from './districts.js';
+import {ASTANA_DISTRICTS,DISTRICT_SOURCE,districtSummary,districtFeatures,districtAt,districtBounds,districtLabelPoint} from './districts.js?v=districts-20261024-2';
 import {stationValue,stationTime,STATION_METRICS} from './air-stations.js';
 
 const SOURCE='ecomind-districts',LAYERS=['ecomind-district-fill','ecomind-district-casing','ecomind-district-line'];

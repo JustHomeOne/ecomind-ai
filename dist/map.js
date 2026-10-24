@@ -2,8 +2,8 @@ import {fillStatus, DEPOT, getContainerDataState} from './data.js';
 import {icon} from './icons.js';
 import {airColor} from './air-map.js';
 import {STATION_METRICS as AIR_METRICS,AIR_COLORS,stationValue,stationTime,STATION_SOURCE,STATION_LICENSE} from './air-stations.js';
-import {createDistrictMap} from './district-map.js';
-import {districtAt} from './districts.js';
+import {createDistrictMap} from './district-map.js?v=districts-20261024-2';
+import {districtAt} from './districts.js?v=districts-20261024-2';
 
 const CITY_CAMERA={center:[71.439,51.155],zoom:12.3,pitch:0,bearing:0};
 const cameras=new Map();
