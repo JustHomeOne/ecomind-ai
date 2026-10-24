@@ -27,7 +27,7 @@ export function districtBounds(feature){
 }
 // Label placement is separate from geometry: labels remain near the urban
 // neighbourhoods instead of the remote airport/cemetery parts of the polygons.
-const LABEL_ANCHORS={saryarka:[71.315,51.21],baikonyr:[71.49,51.225],almaty:[71.57,51.18],sarayshyk:[71.575,51.115],esil:[71.47,51.075],nura:[71.30,51.13]};
+const LABEL_ANCHORS={saryarka:[71.28,51.22],baikonyr:[71.49,51.225],almaty:[71.57,51.18],sarayshyk:[71.575,51.115],esil:[71.47,51.075],nura:[71.30,51.13]};
 export function districtLabelPoint(feature){
   const anchor=LABEL_ANCHORS[feature.properties.id];if(anchor&&geometryContains(anchor,feature.geometry))return anchor;
   const [[west,south],[east,north]]=districtBounds(feature);let best,score=Infinity;
